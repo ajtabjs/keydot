@@ -50,6 +50,20 @@ target_include_directories(keydot_wasm
 )
 target_link_libraries(keydot_wasm PRIVATE keydot_common)
 
+# --- ELF Library ---
+add_library(keydot_elf
+    src/elf/elf_image.cpp
+    src/elf/elf_patterns.cpp
+    src/elf/elf_scanner.cpp
+)
+target_include_directories(keydot_elf
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/includes
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+target_link_libraries(keydot_elf PRIVATE keydot_common)
+
 # --- Main Executable ---
 add_executable(keydot
     src/app/main.cpp
@@ -68,6 +82,7 @@ target_link_libraries(keydot
         keydot_common
         keydot_pe
         keydot_wasm
+        keydot_elf
 )
 
 # --- Compiler Flags ---

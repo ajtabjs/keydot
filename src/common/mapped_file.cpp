@@ -47,4 +47,54 @@ std::span<const uint8_t> MappedFile::get_data() const {
     return { static_cast<const uint8_t*>(m_pMappedData), m_file_size };
 }
 
+#else // !_WIN32
+
+#include <cstring>
+
+MappedFile::MappedFile(const std::string& path) {
+    m_fd = open(path.c_str(), O_RDONLY);
+    if (m_fd == -1) {
+        return;
+    }
+
+    struct stat st;
+    if (fstat(m_fd, &st) == -1) {
+        close(m_fd);
+        m_fd = -1;
+        return;
+    }
+    m_file_size = static_cast<size_t>(st.st_size);
+
+    if (m_file_size == 0) {
+        return;
+    }
+
+    m_data = mmap(nullptr, m_file_size, PROT_READ, MAP_PRIVATE, m_fd, 0);
+    if (m_data == MAP_FAILED) {
+        close(m_fd);
+        m_fd = -1;
+        m_data = nullptr;
+        return;
+    }
+
+    madvise(m_data, m_file_size, MADV_SEQUENTIAL);
+}
+
+MappedFile::~MappedFile() {
+    if (m_data && m_data != MAP_FAILED) {
+        munmap(m_data, m_file_size);
+    }
+    if (m_fd != -1) {
+        close(m_fd);
+    }
+}
+
+bool MappedFile::is_valid() const {
+    return m_data != nullptr && m_data != MAP_FAILED;
+}
+
+std::span<const uint8_t> MappedFile::get_data() const {
+    return { static_cast<const uint8_t*>(m_data), m_file_size };
+}
+
 #endif // _WIN32

@@ -1,6 +1,7 @@
 #include "keydot/application.h"
 #include "keydot/pe_scanner.h"
 #include "keydot/wasm_scanner.h"
+#include "keydot/elf_scanner.h"
 #include "common/utils.h"
 #include "common/timer.h"
 #include <iostream>
@@ -85,11 +86,20 @@ bool Application::is_wasm_file(const std::string& path) const {
     return f.gcount() == 4 && magic[0] == '\0' && magic[1] == 'a' && magic[2] == 's' && magic[3] == 'm';
 }
 
+bool Application::is_elf_file(const std::string& path) const {
+    std::ifstream f(path, std::ios::binary);
+    if (!f) return false;
+    char magic[4];
+    f.read(magic, 4);
+    return f.gcount() == 4 && magic[0] == 0x7F && magic[1] == 'E' && magic[2] == 'L' && magic[3] == 'F';
+}
+
 int Application::process_file() const {
     if (is_wasm_file(m_config.file_path)) {
         return scan_wasm_file(m_config.file_path);
+    } else if (is_elf_file(m_config.file_path)) {
+        return scan_elf_file(m_config.file_path);
     } else {
-        // Assume PE file, let the scanner handle errors if it's not
         return scan_pe_file(m_config.file_path);
     }
 }
